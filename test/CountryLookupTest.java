@@ -17,12 +17,17 @@ class CountryLookupTest {
 	    // Uncomment for Linux
 	    String dir = "/usr/local/share/GeoIP";
 
-	    String dbfile = dir + sep + "GeoIP.dat"; 
+	    String dbfile = dir + sep + "GeoIP.dat";
+            
+            String dbZipFile = "zip:///home/pedro/tex/maxmind/geoip-api-java/test/GeoIP.zip!GeoIP.dat";
+            String hdfsFile = "hdfs://hadoop-pedro:8020/user/pedro/geoip/GeoIP.dat";
+            
+            
 	    // You should only call LookupService once, especially if you use
 	    // GEOIP_MEMORY_CACHE mode, since the LookupService constructor takes up
 	    // resources to load the GeoIP.dat file into memory
 	    //LookupService cl = new LookupService(dbfile,LookupService.GEOIP_STANDARD);
-	    LookupService cl = new LookupService(dbfile,LookupService.GEOIP_MEMORY_CACHE);
+	    LookupService cl = new LookupService(dbZipFile,LookupService.GEOIP_MEMORY_CACHE);
 
 	    System.out.println(cl.getCountry("151.38.39.114").getCode());
 	    System.out.println(cl.getCountry("151.38.39.114").getName());
@@ -33,7 +38,7 @@ class CountryLookupTest {
 	    cl.close();
 	}
 	catch (IOException e) {
-	    System.out.println("IO Exception");
+	    System.out.println("IO Exception " + e.getMessage());
 	}
     }
 }

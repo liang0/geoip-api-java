@@ -34,6 +34,12 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+import org.apache.commons.vfs.FileObject;
+import org.apache.commons.vfs.FileSystemManager;
+import pt.webdetails.vfs.sandbox.RACRandomAccessFile;
+import org.apache.commons.vfs.RandomAccessContent;
+import org.apache.commons.vfs.VFS;
+import org.apache.commons.vfs.util.RandomAccessMode;
 
 /**
  * Provides a lookup service for information based on an IP address. The location of
@@ -207,7 +213,7 @@ public class LookupService {
      * @param licenseKey license key provided by Maxmind to access distributed service
      */
     public LookupService(String databaseFile,String licenseKey) throws IOException {
-        this(new File(databaseFile));
+        this(databaseFile);
         this.licenseKey = licenseKey;
         dnsService = 1;
     }
@@ -218,7 +224,7 @@ public class LookupService {
      * @param licenseKey license key provided by Maxmind to access distributed service
      */
     public LookupService(File databaseFile,String licenseKey) throws IOException {
-        this(databaseFile);
+        this(databaseFile.getAbsolutePath());
         this.licenseKey = licenseKey;
         dnsService = 1;
     }
@@ -241,7 +247,12 @@ public class LookupService {
      *      from the database file.
      */
     public LookupService(String databaseFile) throws IOException {
-        this(new File(databaseFile));
+        
+        File f = new File(databaseFile);
+        
+        this.databaseFile = f;
+        this.file = new RandomAccessFile(databaseFile, "r");
+        init();
     }
 
     /**
@@ -252,9 +263,8 @@ public class LookupService {
      *      from the database file.
      */
     public LookupService(File databaseFile) throws IOException {
-        this.databaseFile = databaseFile;
-        this.file = new RandomAccessFile(databaseFile, "r");
-        init();
+        
+        this(databaseFile.getAbsolutePath());        
     }
 
     /**
@@ -268,7 +278,12 @@ public class LookupService {
      *      from the database file.
      */
     public LookupService(String databaseFile, int options) throws IOException{
-        this(new File(databaseFile),options);
+
+        getDbFileLocation(databaseFile);
+        
+	dboptions = options;
+	init();
+
     }
 
     /**
@@ -282,11 +297,43 @@ public class LookupService {
      *      from the database file.
      */
     public LookupService(File databaseFile, int options) throws IOException{
-        this.databaseFile = databaseFile;
-	this.file = new RandomAccessFile(databaseFile, "r");
-	dboptions = options;
-	init();
+        this(databaseFile.getAbsolutePath(),options);
     }
+    
+    private RandomAccessFile getRandomAccessFile(String name)
+            throws IOException {
+
+        FileSystemManager mgr = VFS.getManager();
+        FileObject file = mgr.resolveFile(name);
+        RandomAccessContent rac = file.getContent().getRandomAccessContent(RandomAccessMode.READ);
+        RandomAccessFile raf = new RACRandomAccessFile(rac);
+
+
+
+        return raf;
+
+    }
+    
+    private void getDbFileLocation(String databaseFile) throws IOException {
+
+        // Pass 1: assume it's a file.
+        // Pass 2: If fails, get it from VFS
+        
+        try {
+            File f = new File(databaseFile);
+            this.databaseFile = f;
+            this.file = new RandomAccessFile(databaseFile, "r");
+
+        } catch (IOException e){
+            
+            this.file = getRandomAccessFile(databaseFile);
+            
+        }    
+    
+        
+    }
+    
+    
     /**
      * Reads meta-data from the database file.
      *
